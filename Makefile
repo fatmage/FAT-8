@@ -19,7 +19,7 @@ DISTCLEAN_LIST := $(OBJ)
 CLEAN_LIST := $(TARGET) \
 			  $(DISTCLEAN_LIST)
 
-default: all
+default: makedir all
 
 $(TARGET): $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $(OBJ)
@@ -29,16 +29,22 @@ $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
 
 $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
 
+.PHONY: makedir
+makedir:
+	@mkdir -p $(BIN_PATH) $(OBJ_PATH)
 
 .PHONY: all
 all: $(TARGET)
 
+
 .PHONY: clean
 clean:
-	@echo CLEAN $(CLEAN_LIST)
+	@echo CLEAN $(CLEAN_LIST) $(BIN_PATH)/ $(OBJ_PATH)/
 	@rm -f $(CLEAN_LIST)
+	@rmdir $(BIN_PATH) $(OBJ_PATH)
 
 .PHONY: distclean
 distclean:
-	@echo CLEAN $(CLEAN_LIST)
+	@echo CLEAN $(CLEAN_LIST) $(OBJ_PATH)/
 	@rm -f $(DISTCLEAN_LIST)
+	@rmdir $(OBJ_PATH)
