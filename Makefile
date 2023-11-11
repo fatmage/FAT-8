@@ -1,5 +1,6 @@
 CC := gcc
-CCFLAGS :=
+CCFLAGS := -Wall -Werror -g
+LDFLAGS := -lncurses
 DBGFLAGS := -g
 CCOBJFLAGS := $(CCFLAGS) -c
 
@@ -22,7 +23,7 @@ CLEAN_LIST := $(TARGET) \
 default: makedir all
 
 $(TARGET): $(OBJ)
-	$(CC) $(CCFLAGS) -o $@ $(OBJ)
+	$(CC) $(CCFLAGS) -o $@ $(OBJ) $(LDFLAGS)
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
 	$(CC) $(CCOBJFLAGS) -o $@ $<

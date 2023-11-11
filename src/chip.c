@@ -1,6 +1,7 @@
 #include "chip.h"
 
 static fat8_t fat8;
+keypad_t fat8_keypad;
 static void (*op_table[0xF]) ();
 static void (*op_table0[0xF]) ();
 static void (*op_table8[0xF]) ();
@@ -10,10 +11,11 @@ static void (*op_tableF[0x65]) ();
 
 void fat8_init() {
     memset(&fat8, 0, sizeof(fat8_t));
+    memset(&fat8_keypad, 0, sizeof(keypad_t));
+
     fat8.PC = INSTRUCTION_START;
 
-    // init fontów
-
+    // initialise fonts
     byte_t fontset[FONTSET_SIZE] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -36,7 +38,7 @@ void fat8_init() {
     for (int i = 0; i < FONTSET_SIZE; i++)
         fat8.memory[FONTSET_START + i] = fontset[i];
 
-    // init instrukcji
+    // initialise instruction tables
 
     	op_table[0x0] = &help_table0;
 		op_table[0x1] = &op_1nnn;
@@ -92,7 +94,7 @@ void fat8_init() {
 		op_tableF[0x65] = &op_Fx65;
 
 
-    // init rng
+    // initialise rng
     srand(time(NULL));
 }
 
@@ -134,6 +136,19 @@ int fat8_load_ROM(const char * ROM_path) {
     return res;
 }
 
+int fat8_export_framebuffer(pixel_t *dst) {
+    if (dst == NULL) {
+        // error
+        return 1;
+    }
+
+    for (int i = 0; i < FRAME_BUFFER_SIZE; i++) {
+        dst[i] = fat8.frame_buffer[i];
+    }
+
+    return 0;
+}
+
 // operations
 
 void help_table0() { (*op_table0[fat8.current_opcode & 0x000F])(); }
@@ -147,14 +162,19 @@ void help_tableF() { (*op_tableF[fat8.current_opcode & 0x00FF])(); }
 void op_noop() { return; }
 
 void op_0nnn() { // SYS addr
-// According to Cowgod's CHIP-8 Technical Reference:
-// This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
-// Here equivalent to CALL addr
+/*
+ * According to Cowgod's CHIP-8 Technical Reference:
+ * Jump to a machine code routine at nnn.
+ * This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
+ * 
+ * Here equivalent to CALL addr
+ */
     op_2nnn();
 }
 
 void op_00E0() { // CLS
-    memset(&fat8.screen_buffer, 0, SCREEN_BUFFER_SIZE);
+    for (int i = 0; i < FRAME_BUFFER_SIZE; i++)
+        fat8.frame_buffer[i] = PIXEL_OFF;
 }
 
 void op_00EE() { // RET
@@ -173,11 +193,11 @@ void op_1nnn() { // JP addr
 }
 
 void op_2nnn() { // CALL addr
-    uint16_t jump_target = fat8.current_opcode & 0x0FFF;
     fat8.RSP++;
     if (fat8.RSP >= MAX_STACK_DEPTH) {
         // ERROR
     }
+    fat8.stack[fat8.RSP] = fat8.PC;
     op_1nnn();
 }
 
@@ -298,20 +318,46 @@ void op_Cxkk() { // RND Vx, byte
     uint8_t val = fat8.current_opcode & 0x00FF;
     uint8_t random_byte = rand() % 256;
     fat8.V[reg] = val & random_byte;
-    
-
 }
 
 void op_Dxyn() { // DRW Vx, Vy, nibble
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x0F00) >> 4;
+    uint16_t byte_num = fat8.current_opcode & 0x000F;
 
+
+    pixel_t sprite[byte_num][8];
+    for (int i = 0; i < byte_num; i++) {
+        for (int j = 0; j <8 ; j++) {
+            sprite[i][j] = (fat8.memory[fat8.IR + i] >> (7 - j)) & 1; 
+        }
+    }
+
+    uint16_t x = fat8.V[reg1];
+    uint16_t y = fat8.V[reg2];
+    fat8.V[0xF] = 0;
+    for (int i = 0; i < byte_num; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] && !sprite[i][j]) {
+                fat8.V[0xF] = 1;
+            }
+            fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] ^= !sprite[i][j];
+        }
+    }
 }
 
 void op_Ex9E() { // SKP Vx
-
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    if (fat8_keypad.key[fat8.V[reg]]) {
+        fat8.PC += 2;
+    }
 }
 
 void op_ExA1() { // SKNP Vx
-
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    if (!fat8_keypad.key[fat8.V[reg]]) {
+        fat8.PC += 2;
+    }
 }
 
 void op_Fx07() { // LD Vx, DT
@@ -320,7 +366,14 @@ void op_Fx07() { // LD Vx, DT
 }
 
 void op_Fx0A() { // LD Vx, K
-
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    for (int i = 0; i <= 0xF; i++) {
+        if (fat8_keypad.key[i]) {
+            fat8.V[reg] = i;
+            return;
+        }
+    }
+    fat8.PC -= 2;
 }
 
 void op_Fx15() { // LD DT, Vx
@@ -339,7 +392,8 @@ void op_Fx1E() { // ADD I, Vx
 }
 
 void op_Fx29() { // LD F, Vx   
-
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.IR = FONTSET_START + (fat8.V[reg] * 4);
 }
 
 void op_Fx33() { // LD B, Vx

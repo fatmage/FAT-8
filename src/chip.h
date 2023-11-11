@@ -17,18 +17,28 @@
 #define DISPLAY_START 0xF00 
 #define RESERVED_END 0x1FF
 
-#define SCREEN_BUFFER_SIZE 32 * 64
+#define FRAME_BUFFER_WIDTH  64
+#define FRAME_BUFFER_HEIGHT 32
+#define FRAME_BUFFER_SIZE FRAME_BUFFER_WIDTH * FRAME_BUFFER_HEIGHT
 
 #define USER_SPACE_START INSTRUCTION_START
 #define USER_SPACE_END   4096
 #define MAX_STACK_DEPTH  16
 
+#define IND(y, x) ((y)*FRAME_BUFFER_WIDTH + (x))
+#define GET_Y(ind) ((ind)/FRAME_BUFFER_WIDTH)
+#define GET_X(ind) ((ind)%FRAME_BUFFER_WIDTH)
+
 
 typedef uint8_t byte_t;
-typedef uint8_t pixel_t;
+
+typedef enum pixel {
+    PIXEL_ON = 1,
+    PIXEL_OFF = 0
+} pixel_t;
 
 typedef struct fat8 {
-    pixel_t screen_buffer[SCREEN_BUFFER_SIZE];
+    pixel_t frame_buffer[FRAME_BUFFER_SIZE];
     byte_t memory[4096];
     // special registers
     uint16_t PC;
@@ -46,10 +56,15 @@ typedef struct fat8 {
     uint16_t current_opcode;
 } fat8_t;
 
+typedef struct fat8_keypad {
+    uint8_t key[16];
+} keypad_t;
+
 
 void fat8_init();
 void fat8_cycle();
 int fat8_load_ROM(const char * ROM_path);
+int fat8_export_framebuffer(pixel_t *dst);
 
 // operations
 
