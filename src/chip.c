@@ -56,9 +56,9 @@ void fat8_init() {
 		op_table[0xF] = &help_tableF;
 
         for (int i = 0; i < 16; i++) {
-            op_table0[i] = &op_NULL;
-            op_table8[i] = &op_NULL;
-            op_tableE[i] = &op_NULL;
+            op_table0[i] = &op_noop;
+            op_table8[i] = &op_noop;
+            op_tableE[i] = &op_noop;
         }
 
         op_table0[0x0]  = &op_00E0;
@@ -78,7 +78,7 @@ void fat8_init() {
 		op_tableE[0xE] = &op_Ex9E;
 
 		for (int i = 0; i <= 0x65; i++) {
-			op_tableF[i] = &op_NULL;
+			op_tableF[i] = &op_noop;
 		}
 
 		op_tableF[0x07] = &op_Fx07;
@@ -103,9 +103,8 @@ void fat8_cycle() {
     fat8.current_opcode = (fat8.memory[fat8.PC] << 8) | fat8.memory[fat8.PC+1];
     fat8.PC += 2;
 
-    // decode
+    // decode & execute
     (*op_table[(fat8.current_opcode & 0xF000) >> 12])();
-    // execute
 
     // timers
     if (fat8.delay_timer > 0)
@@ -145,145 +144,222 @@ void help_tableE() { (*op_tableE[fat8.current_opcode & 0x000F])(); }
 
 void help_tableF() { (*op_tableF[fat8.current_opcode & 0x00FF])(); }
 
-void op_NULL() { return; }
+void op_noop() { return; }
 
-void op_0nnn() {
+void op_0nnn() { // SYS addr
+// According to Cowgod's CHIP-8 Technical Reference:
+// This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
+// Here equivalent to CALL addr
+    op_2nnn();
+}
+
+void op_00E0() { // CLS
+    memset(&fat8.screen_buffer, 0, SCREEN_BUFFER_SIZE);
+}
+
+void op_00EE() { // RET
+    if (fat8.RSP < 0) {
+        // ERROR
+    }
+    fat8.PC = fat8.stack[fat8.RSP--];
+}
+
+void op_1nnn() { // JP addr
+    uint16_t jump_target = fat8.current_opcode & 0x0FFF;
+    if (jump_target < USER_SPACE_START || jump_target >= USER_SPACE_END) {
+        // ERROR
+    }
+    fat8.PC = jump_target;
+}
+
+void op_2nnn() { // CALL addr
+    uint16_t jump_target = fat8.current_opcode & 0x0FFF;
+    fat8.RSP++;
+    if (fat8.RSP >= MAX_STACK_DEPTH) {
+        // ERROR
+    }
+    op_1nnn();
+}
+
+void op_3xkk() { // SE Vx, byte
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t val = fat8.current_opcode & 0x00FF;
+    if (fat8.V[reg] == val) {
+        fat8.PC += 2;
+    }
+}
+
+void op_4xkk() { // SNE Vx, byte
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t val = fat8.current_opcode & 0x00FF;
+    if (fat8.V[reg] != val) {
+        fat8.PC += 2;
+    }
+}
+
+void op_5xy0() { // SE Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    if (fat8.V[reg1] == fat8.V[reg2]) {
+        fat8.PC += 2;
+    }
+}
+
+void op_6xkk() { // LD Vx, byte
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t val = fat8.current_opcode & 0x00FF;
+    fat8.V[reg] = val;
+}
+
+void op_7xkk() { // ADD Vx, byte
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t val = fat8.current_opcode & 0x00FF;
+    fat8.V[reg] += val;
+}
+
+void op_8xy0() { // LD Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[reg1] = fat8.V[reg2];
+}
+
+void op_8xy1() { // OR Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[reg1] |= fat8.V[reg2];
+}
+
+void op_8xy2() { // AND Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[reg1] &= fat8.V[reg2];
+}
+
+void op_8xy3() { // XOR Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[reg1] ^= fat8.V[reg2];
+}
+
+void op_8xy4() { // ADD Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    uint16_t result = fat8.V[reg1] + fat8.V[reg2];
+    fat8.V[0xF] = result > 255;
+    fat8.V[reg1] = result & 0x00FF;
+}
+
+void op_8xy5() { // SUB Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[0xF] = fat8.V[reg1] > fat8.V[reg2];
+    fat8.V[reg1] -= fat8.V[reg2];
+}
+
+void op_8xy6() { // SHR Vx {, Vy}
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.V[0xF] = fat8.V[reg] & 0x01;
+    fat8.V[reg] >>= 1;
+}
+
+void op_8xy7() { // SUBN Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[0xF] = fat8.V[reg1] < fat8.V[reg2];
+    fat8.V[reg1] = fat8.V[reg2] - fat8.V[reg1];
+}
+
+void op_8xyE() { // SHL Vx {, Vy}
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.V[0xF] = fat8.V[reg] & 0x80;
+    fat8.V[reg] = (fat8.V[reg] << 1) & 0xFF;
+}
+
+void op_9xy0() { // SNE Vx, Vy
+    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    if (fat8.V[reg1] != fat8.V[reg2]) {
+        fat8.PC += 2;
+    }
+}
+
+void op_Annn() { // LD I, addr
+    uint16_t val = fat8.current_opcode & 0x0FFF;
+    fat8.IR = val;
+}
+
+void op_Bnnn() { // JP V0, addr
+    uint16_t addr = fat8.current_opcode & 0x0FFF;
+    fat8.PC = fat8.V[0] + addr;
+}
+
+void op_Cxkk() { // RND Vx, byte
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t val = fat8.current_opcode & 0x00FF;
+    uint8_t random_byte = rand() % 256;
+    fat8.V[reg] = val & random_byte;
+    
 
 }
 
-void op_00E0() {
+void op_Dxyn() { // DRW Vx, Vy, nibble
 
 }
 
-void op_00EE() {
+void op_Ex9E() { // SKP Vx
 
 }
 
-void op_1nnn() {
+void op_ExA1() { // SKNP Vx
 
 }
 
-void op_2nnn() {
+void op_Fx07() { // LD Vx, DT
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.V[reg] = fat8.delay_timer;
+}
+
+void op_Fx0A() { // LD Vx, K
 
 }
 
-void op_3xkk() {
+void op_Fx15() { // LD DT, Vx
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.delay_timer = fat8.V[reg];
+}
+
+void op_Fx18() { // LD ST, Vx
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.sound_timer = fat8.V[reg];
+}
+
+void op_Fx1E() { // ADD I, Vx
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.IR = fat8.IR + fat8.V[reg];
+}
+
+void op_Fx29() { // LD F, Vx   
 
 }
 
-void op_4xkk() {
-
+void op_Fx33() { // LD B, Vx
+    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t val = fat8.V[reg];
+    fat8.memory[fat8.IR]     = (val / 100) % 10;
+    fat8.memory[fat8.IR + 1] = (val / 10)  % 10;
+    fat8.memory[fat8.IR + 2] =  val        % 10;
 }
 
-void op_5xy0() {
-
+void op_Fx55() { // LD [I], Vx
+    uint16_t x = (fat8.current_opcode & 0x0F00) >> 8;
+    for (int i = 0; i <= x; i++)
+        fat8.memory[fat8.IR + i] = fat8.V[i];
 }
 
-void op_6xkk() {
-
-}
-
-void op_7xkk() {
-
-}
-
-void op_8xy0() {
-
-}
-
-void op_8xy1() {
-
-}
-
-void op_8xy2() {
-
-}
-
-void op_8xy3() {
-
-}
-
-void op_8xy4() {
-
-}
-
-void op_8xy5() {
-
-}
-
-void op_8xy6() {
-
-}
-
-void op_8xy7() {
-
-}
-
-void op_8xyE() {
-
-}
-
-void op_9xy0() {
-
-}
-
-void op_Annn() {
-
-}
-
-void op_Bnnn() {
-
-}
-
-void op_Cxkk() {
-
-}
-
-void op_Dxyn() {
-
-}
-
-void op_Ex9E() {
-
-}
-
-void op_ExA1() {
-
-}
-
-void op_Fx07() {
-
-}
-void op_Fx0A() {
-
-}
-
-void op_Fx15() {
-
-}
-
-void op_Fx18() {
-
-}
-
-void op_Fx1E() {
-
-}
-
-void op_Fx29() {
-
-}
-
-void op_Fx33() {
-
-}
-
-void op_Fx55() {
-
-}
-
-void op_Fx65() {
-
+void op_Fx65() { // LD Vx, [I]
+    uint16_t x = (fat8.current_opcode & 0x0F00) >> 8;
+    for (int i = 0; i <= x; i++)
+        fat8.V[i] = fat8.memory[fat8.IR + i];
 }
 
 

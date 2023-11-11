@@ -16,12 +16,18 @@
 #define DISPLAY_START 0xF00 
 #define RESERVED_END 0x1FF
 
+const int SCREEN_BUFFER_SIZE = 32 * 64;
+
+#define USER_SPACE_START INSTRUCTION_START
+#define USER_SPACE_END   4096
+#define MAX_STACK_DEPTH  16
+
 
 typedef uint8_t byte_t;
 typedef uint8_t pixel_t;
 
 typedef struct fat8 {
-    pixel_t screen_buffer[32 * 64];
+    pixel_t screen_buffer[SCREEN_BUFFER_SIZE];
     byte_t memory[4096];
     // special registers
     uint16_t PC;
@@ -30,22 +36,7 @@ typedef struct fat8 {
     uint16_t stack[16];
     uint8_t RSP;
     // regular registers
-    uint8_t V0;
-    uint8_t V1;
-    uint8_t V2;
-    uint8_t V3;
-    uint8_t V4;
-    uint8_t V5;
-    uint8_t V6;
-    uint8_t V7;
-    uint8_t V8;
-    uint8_t V9;
-    uint8_t VA;
-    uint8_t VB;
-    uint8_t VC;
-    uint8_t VD;
-    uint8_t VE;
-    uint8_t VF;
+    uint8_t V[16];
     // timers
     uint8_t delay_timer;
     uint8_t sound_timer;
@@ -66,7 +57,7 @@ void help_table8();
 void help_tableE();
 void help_tableF();
 
-void op_NULL();
+void op_noop();
 
 void op_0nnn();
 void op_00E0();
