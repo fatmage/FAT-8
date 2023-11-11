@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <time.h>
 
 #define FONTSET_SIZE 80
 #define FONTSET_START 0x000
@@ -16,7 +17,7 @@
 #define DISPLAY_START 0xF00 
 #define RESERVED_END 0x1FF
 
-const int SCREEN_BUFFER_SIZE = 32 * 64;
+#define SCREEN_BUFFER_SIZE 32 * 64
 
 #define USER_SPACE_START INSTRUCTION_START
 #define USER_SPACE_END   4096

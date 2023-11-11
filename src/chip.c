@@ -123,7 +123,7 @@ int fat8_load_ROM(const char * ROM_path) {
         return 1;
 
     for (int i = INSTRUCTION_START; i < 4096; i++)
-        if (fread(fat8.memory[i], 1, 1, rom_file) == 0) 
+        if (fread(&fat8.memory[i], 1, 1, rom_file) == 0) 
             break;
 
     if (ferror(rom_file)) {

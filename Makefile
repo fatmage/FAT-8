@@ -9,7 +9,7 @@ SRC_PATH := src
 
 project_name := fat-8
 
-TARGET_NAME := main
+TARGET_NAME := fat-8
 TARGET := $(BIN_PATH)/$(TARGET_NAME)
 
 SRC := $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.c*)))
