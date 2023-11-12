@@ -45,7 +45,7 @@ typedef struct fat8 {
     uint16_t IR;
     // stack
     uint16_t stack[16];
-    uint8_t RSP;
+    int8_t RSP;
     // regular registers
     uint8_t V[16];
     // timers

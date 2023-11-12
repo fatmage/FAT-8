@@ -14,6 +14,7 @@ void fat8_init() {
     memset(&fat8_keypad, 0, sizeof(keypad_t));
 
     fat8.PC = INSTRUCTION_START;
+    fat8.RSP = -1;
 
     // initialise fonts
     byte_t fontset[FONTSET_SIZE] = {
@@ -178,27 +179,20 @@ void op_00E0() { // CLS
 }
 
 void op_00EE() { // RET
-    if (fat8.RSP < 0) {
-        // ERROR
-    }
-    fat8.PC = fat8.stack[fat8.RSP--];
+    fat8.PC = fat8.stack[fat8.RSP];
+    fat8.RSP -= 1;
 }
 
 void op_1nnn() { // JP addr
     uint16_t jump_target = fat8.current_opcode & 0x0FFF;
-    if (jump_target < USER_SPACE_START || jump_target >= USER_SPACE_END) {
-        // ERROR
-    }
     fat8.PC = jump_target;
 }
 
 void op_2nnn() { // CALL addr
+    uint16_t jump_target = fat8.current_opcode & 0x0FFF;
     fat8.RSP++;
-    if (fat8.RSP >= MAX_STACK_DEPTH) {
-        // ERROR
-    }
     fat8.stack[fat8.RSP] = fat8.PC;
-    op_1nnn();
+    fat8.PC = jump_target;
 }
 
 void op_3xkk() { // SE Vx, byte
@@ -273,7 +267,8 @@ void op_8xy5() { // SUB Vx, Vy
     uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
     uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
     fat8.V[0xF] = fat8.V[reg1] > fat8.V[reg2];
-    fat8.V[reg1] -= fat8.V[reg2];
+    uint8_t result = (uint8_t)fat8.V[reg1] - (uint8_t)fat8.V[reg2];
+    fat8.V[reg1] = result;
 }
 
 void op_8xy6() { // SHR Vx {, Vy}
@@ -322,26 +317,28 @@ void op_Cxkk() { // RND Vx, byte
 
 void op_Dxyn() { // DRW Vx, Vy, nibble
     uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x0F00) >> 4;
+    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
     uint16_t byte_num = fat8.current_opcode & 0x000F;
 
 
     pixel_t sprite[byte_num][8];
     for (int i = 0; i < byte_num; i++) {
-        for (int j = 0; j <8 ; j++) {
-            sprite[i][j] = (fat8.memory[fat8.IR + i] >> (7 - j)) & 1; 
+        uint8_t sprite_byte = fat8.memory[fat8.IR + i];
+        for (int j = 0; j < 8 ; j++) {
+            sprite[i][j] = (sprite_byte & (0x80 >> j)) ? PIXEL_ON : PIXEL_OFF;
         }
     }
 
-    uint16_t x = fat8.V[reg1];
-    uint16_t y = fat8.V[reg2];
+    uint16_t x = fat8.V[reg1] % FRAME_BUFFER_WIDTH;
+    uint16_t y = fat8.V[reg2] % FRAME_BUFFER_HEIGHT;
     fat8.V[0xF] = 0;
     for (int i = 0; i < byte_num; i++) {
         for (int j = 0; j < 8; j++) {
+            
             if (fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] && !sprite[i][j]) {
                 fat8.V[0xF] = 1;
             }
-            fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] ^= !sprite[i][j];
+            fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] ^= sprite[i][j];
         }
     }
 }
