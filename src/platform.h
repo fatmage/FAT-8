@@ -3,7 +3,11 @@
 
 #include <ncurses.h>
 #include "chip.h"
+#include <sys/time.h>
+#include <time.h>
 
+
+const uint64_t frame_time = 1000000/60;
 
 
 
