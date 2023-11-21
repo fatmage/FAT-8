@@ -100,7 +100,7 @@ void fat8_init() {
 }
 
 
-void fat8_cycle() {
+void fat8_operation() {
 
     // fetch
     fat8.current_opcode = (fat8.memory[fat8.PC] << 8) | fat8.memory[fat8.PC+1];
@@ -108,8 +108,9 @@ void fat8_cycle() {
 
     // decode & execute
     (*op_table[(fat8.current_opcode & 0xF000) >> 12])();
+}
 
-    // timers
+void fat8_timers() {
     if (fat8.delay_timer > 0)
         fat8.delay_timer--;
     if (fat8.sound_timer > 0)
@@ -196,104 +197,109 @@ void op_2nnn() { // CALL addr
 }
 
 void op_3xkk() { // SE Vx, byte
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t val = fat8.current_opcode & 0x00FF;
-    if (fat8.V[reg] == val) {
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t val = fat8.current_opcode & 0x00FF;
+    if (fat8.V[Vx] == val) {
         fat8.PC += 2;
     }
 }
 
 void op_4xkk() { // SNE Vx, byte
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t val = fat8.current_opcode & 0x00FF;
-    if (fat8.V[reg] != val) {
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t val = fat8.current_opcode & 0x00FF;
+    if (fat8.V[Vx] != val) {
         fat8.PC += 2;
     }
 }
 
 void op_5xy0() { // SE Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    if (fat8.V[reg1] == fat8.V[reg2]) {
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    if (fat8.V[Vx] == fat8.V[Vy]) {
         fat8.PC += 2;
     }
 }
 
 void op_6xkk() { // LD Vx, byte
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t val = fat8.current_opcode & 0x00FF;
-    fat8.V[reg] = val;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t val = fat8.current_opcode & 0x00FF;
+    fat8.V[Vx] = val;
 }
 
 void op_7xkk() { // ADD Vx, byte
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t val = fat8.current_opcode & 0x00FF;
-    fat8.V[reg] += val;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t val = fat8.current_opcode & 0x00FF;
+    fat8.V[Vx] += val;
 }
 
 void op_8xy0() { // LD Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    fat8.V[reg1] = fat8.V[reg2];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[Vx] = fat8.V[Vy];
 }
 
 void op_8xy1() { // OR Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    fat8.V[reg1] |= fat8.V[reg2];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[Vx] |= fat8.V[Vy];
 }
 
 void op_8xy2() { // AND Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    fat8.V[reg1] &= fat8.V[reg2];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[Vx] &= fat8.V[Vy];
 }
 
 void op_8xy3() { // XOR Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    fat8.V[reg1] ^= fat8.V[reg2];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    fat8.V[Vx] ^= fat8.V[Vy];
 }
 
 void op_8xy4() { // ADD Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    uint16_t result = fat8.V[reg1] + fat8.V[reg2];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    uint16_t result = fat8.V[Vx] + fat8.V[Vy];
+    fat8.V[Vx] = result & 0x00FF;
     fat8.V[0xF] = result > 255;
-    fat8.V[reg1] = result & 0x00FF;
 }
 
 void op_8xy5() { // SUB Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    fat8.V[0xF] = fat8.V[reg1] > fat8.V[reg2];
-    uint8_t result = (uint8_t)fat8.V[reg1] - (uint8_t)fat8.V[reg2];
-    fat8.V[reg1] = result;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    uint8_t flag = fat8.V[Vx] >= fat8.V[Vy];
+    fat8.V[Vx] -= fat8.V[Vy];
+    fat8.V[0xF] = flag;
 }
 
 void op_8xy6() { // SHR Vx {, Vy}
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.V[0xF] = fat8.V[reg] & 0x01;
-    fat8.V[reg] >>= 1;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    uint8_t flag = fat8.V[Vy] & 0x01;
+    fat8.V[Vx] = fat8.V[Vy] >> 1;
+    fat8.V[0xF] = flag;
 }
 
 void op_8xy7() { // SUBN Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    fat8.V[0xF] = fat8.V[reg1] < fat8.V[reg2];
-    fat8.V[reg1] = fat8.V[reg2] - fat8.V[reg1];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    uint8_t flag = fat8.V[Vx] <= fat8.V[Vy];
+    fat8.V[Vx] = fat8.V[Vy] - fat8.V[Vx];
+    fat8.V[0xF] = flag;
 }
 
 void op_8xyE() { // SHL Vx {, Vy}
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.V[0xF] = fat8.V[reg] & 0x80;
-    fat8.V[reg] = (fat8.V[reg] << 1) & 0xFF;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    uint8_t flag = (fat8.V[Vy] & 0x80) >> 7;
+    fat8.V[Vx] = fat8.V[Vy] << 1;
+    fat8.V[0xF] = flag;
 }
 
 void op_9xy0() { // SNE Vx, Vy
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
-    if (fat8.V[reg1] != fat8.V[reg2]) {
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
+    if (fat8.V[Vx] != fat8.V[Vy]) {
         fat8.PC += 2;
     }
 }
@@ -309,15 +315,15 @@ void op_Bnnn() { // JP V0, addr
 }
 
 void op_Cxkk() { // RND Vx, byte
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
     uint8_t val = fat8.current_opcode & 0x00FF;
-    uint8_t random_byte = rand() % 256;
-    fat8.V[reg] = val & random_byte;
+    uint16_t random_byte = rand() % 256;
+    fat8.V[Vx] = val & random_byte;
 }
 
 void op_Dxyn() { // DRW Vx, Vy, nibble
-    uint16_t reg1 = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t reg2 = (fat8.current_opcode & 0x00F0) >> 4;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
     uint16_t byte_num = fat8.current_opcode & 0x000F;
 
 
@@ -329,8 +335,8 @@ void op_Dxyn() { // DRW Vx, Vy, nibble
         }
     }
 
-    uint16_t x = fat8.V[reg1] % FRAME_BUFFER_WIDTH;
-    uint16_t y = fat8.V[reg2] % FRAME_BUFFER_HEIGHT;
+    uint16_t x = fat8.V[Vx] % FRAME_BUFFER_WIDTH;
+    uint16_t y = fat8.V[Vy] % FRAME_BUFFER_HEIGHT;
     fat8.V[0xF] = 0;
     for (int i = 0; i < byte_num; i++) {
         for (int j = 0; j < 8; j++) {
@@ -344,29 +350,29 @@ void op_Dxyn() { // DRW Vx, Vy, nibble
 }
 
 void op_Ex9E() { // SKP Vx
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    if (fat8_keypad.key[fat8.V[reg]]) {
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    if (fat8_keypad.key[fat8.V[Vx]]) {
         fat8.PC += 2;
     }
 }
 
 void op_ExA1() { // SKNP Vx
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    if (!fat8_keypad.key[fat8.V[reg]]) {
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    if (!fat8_keypad.key[fat8.V[Vx]]) {
         fat8.PC += 2;
     }
 }
 
 void op_Fx07() { // LD Vx, DT
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.V[reg] = fat8.delay_timer;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.V[Vx] = fat8.delay_timer;
 }
 
 void op_Fx0A() { // LD Vx, K
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
     for (int i = 0; i <= 0xF; i++) {
         if (fat8_keypad.key[i]) {
-            fat8.V[reg] = i;
+            fat8.V[Vx] = i;
             return;
         }
     }
@@ -374,28 +380,28 @@ void op_Fx0A() { // LD Vx, K
 }
 
 void op_Fx15() { // LD DT, Vx
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.delay_timer = fat8.V[reg];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.delay_timer = fat8.V[Vx];
 }
 
 void op_Fx18() { // LD ST, Vx
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.sound_timer = fat8.V[reg];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.sound_timer = fat8.V[Vx];
 }
 
 void op_Fx1E() { // ADD I, Vx
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.IR = fat8.IR + fat8.V[reg];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.IR = fat8.IR + fat8.V[Vx];
 }
 
 void op_Fx29() { // LD F, Vx   
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    fat8.IR = FONTSET_START + (fat8.V[reg] * 4);
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    fat8.IR = FONTSET_START + (fat8.V[Vx] * 5);
 }
 
 void op_Fx33() { // LD B, Vx
-    uint16_t reg = (fat8.current_opcode & 0x0F00) >> 8;
-    uint16_t val = fat8.V[reg];
+    uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
+    uint16_t val = fat8.V[Vx];
     fat8.memory[fat8.IR]     = (val / 100) % 10;
     fat8.memory[fat8.IR + 1] = (val / 10)  % 10;
     fat8.memory[fat8.IR + 2] =  val        % 10;

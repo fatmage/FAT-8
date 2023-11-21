@@ -30,6 +30,7 @@
 #define GET_X(ind) ((ind)%FRAME_BUFFER_WIDTH)
 
 
+
 typedef uint8_t byte_t;
 
 typedef enum pixel {
@@ -62,7 +63,8 @@ typedef struct fat8_keypad {
 
 
 void fat8_init();
-void fat8_cycle();
+void fat8_operation();
+void fat8_timers();
 int fat8_load_ROM(const char * ROM_path);
 int fat8_export_framebuffer(pixel_t *dst);
 

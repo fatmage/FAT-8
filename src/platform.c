@@ -6,6 +6,8 @@ extern keypad_t fat8_keypad;
 static WINDOW* chip_window;
 static pixel_t screen[64 * 32];
 
+const uint64_t timer_time = 1000000/60;
+const uint64_t frame_time = 1000000/60;
 
 
 int init_platform(const char * rom_path) {
@@ -120,7 +122,8 @@ int run_chip() {
 
     struct timeval prev;
     gettimeofday(&prev, NULL);
-    uint64_t time_elapsed = 0;
+    uint64_t time_elapsed_frame = 0;
+    uint64_t time_elapsed_timer = 0;
 
     for (;;) {
         fat8_export_framebuffer(screen);
@@ -132,17 +135,21 @@ int run_chip() {
         struct timeval curr;
         gettimeofday(&curr, NULL);
 
-        uint64_t time_delta = curr.tv_sec * 1000000;
-        time_delta += curr.tv_usec;
-        time_delta -= prev.tv_sec * 1000000;
-        time_delta -= prev.tv_usec;
+        uint64_t time_delta = curr.tv_sec - prev.tv_sec;
+        time_delta *= 1000000;
+        time_delta += curr.tv_usec - prev.tv_usec;
 
-        time_elapsed += time_delta;
+        time_elapsed_frame += time_delta;
+        time_elapsed_timer += time_delta;
 
-        if (time_elapsed > frame_time) {
-            time_elapsed -= frame_time;
+        if (time_elapsed_frame > frame_time) {
+            time_elapsed_frame -= frame_time;
             get_keys();
-            fat8_cycle();
+            fat8_operation();
+        }
+        if (time_elapsed_timer > timer_time) {
+            time_elapsed_timer -= timer_time;
+            fat8_timers();
         }
 
         prev = curr;

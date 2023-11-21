@@ -18,6 +18,9 @@ CHIP-8 specification based on:
 
 [CHIP‐8 Technical Reference (Matthew Mikolay)](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Technical-Reference)
 
+[Timendus' Chip Test Suite](https://github.com/Timendus/chip8-test-suite)
+
+
 ## TODO
 
 - Fix displaying
