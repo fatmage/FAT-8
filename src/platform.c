@@ -7,7 +7,9 @@ static WINDOW* chip_window;
 static pixel_t screen[64 * 32];
 
 const uint64_t timer_time = 1000000/60;
-const uint64_t frame_time = 1000000/60;
+const uint64_t frame_time = 1000000/250;
+
+#define KEYBOARD_TIMEOUT_CYCLES 10
 
 
 int init_platform(const char * rom_path) {
@@ -34,71 +36,53 @@ int init_platform(const char * rom_path) {
 }
 
 
-int get_keys() {
+int clear_keys() {
+    for (int i = 0x0; i <= 0xF; i++) {
 
-    int keys[16];
-    memset(keys, 0, 16*sizeof(int));
+        if (fat8_keypad.time_left[i] > 0) {
+            fat8_keypad.time_left[i] -= 1;
+            if (fat8_keypad.time_left[i] == 0)
+                fat8_keypad.key[i] = 0;
+        }
+    }
+
+    return 0;
+}
+
+#define set_key(kboard, kpad)                                  \
+    case kboard:                                               \
+        fat8_keypad.key[kpad] = 1;                             \
+        fat8_keypad.time_left[kpad] = KEYBOARD_TIMEOUT_CYCLES; \
+        break;    
+
+int get_keys() {
 
     int pressed_key;
 
     while ((pressed_key = getch()) != ERR) {
         switch (pressed_key) {
-            case '1':
-                keys[0x1] = pressed_key;
-                break; 
-            case '2':
-                keys[0x2] = pressed_key;
-                break; 
-            case '3':
-                keys[0x3] = pressed_key;
-                break; 
-            case '4':
-                keys[0xC] = pressed_key;
-                break; 
-            case 'q':
-                keys[0x4] = pressed_key;
-                break; 
-            case 'w':
-                keys[0x5] = pressed_key;
-                break; 
-            case 'e':
-                keys[0x6] = pressed_key;
-                break; 
-            case 'r':
-                keys[0xD] = pressed_key;
-                break; 
-            case 'a':
-                keys[0x7] = pressed_key;
-                break; 
-            case 's':
-                keys[0x8] = pressed_key;
-                break; 
-            case 'd':
-                keys[0x9] = pressed_key;
-                break; 
-            case 'f':
-                keys[0xE] = pressed_key;
-                break; 
-            case 'z':
-                keys[0xA] = pressed_key;
-                break; 
-            case 'x':
-                keys[0x0] = pressed_key;
-                break; 
-            case 'c':
-                keys[0xB] = pressed_key;
-                break; 
-            case 'v':
-                keys[0xF] = pressed_key;
-                break; 
+            set_key('1', 0x1)
+            set_key('2', 0x2)
+            set_key('3', 0x3)
+            set_key('4', 0xC)
+            set_key('q', 0x4)
+            set_key('w', 0x5)
+            set_key('e', 0x6)
+            set_key('r', 0xD)
+            set_key('a', 0x7)
+            set_key('s', 0x8)
+            set_key('d', 0x9)
+            set_key('f', 0xE)
+            set_key('z', 0xA)
+            set_key('x', 0x0)
+            set_key('c', 0xB)
+            set_key('v', 0xF)
             default:
                 break;
         }
     }
 
-    for (int i = 0x0; i <= 0xF; i++) {
-            fat8_keypad.key[i] = keys[i];
-    }
+
 
     return 0;
 }
@@ -142,15 +126,20 @@ int run_chip() {
         time_elapsed_frame += time_delta;
         time_elapsed_timer += time_delta;
 
+        get_keys();
+
         if (time_elapsed_frame > frame_time) {
             time_elapsed_frame -= frame_time;
-            get_keys();
             fat8_operation();
+
+            clear_keys();
         }
         if (time_elapsed_timer > timer_time) {
             time_elapsed_timer -= timer_time;
             fat8_timers();
         }
+
+
 
         prev = curr;
     }

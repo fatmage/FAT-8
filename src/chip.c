@@ -322,31 +322,54 @@ void op_Cxkk() { // RND Vx, byte
 }
 
 void op_Dxyn() { // DRW Vx, Vy, nibble
+
+    
+
     uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
     uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
-    uint16_t byte_num = fat8.current_opcode & 0x000F;
+    uint8_t byte_num = fat8.current_opcode & 0x000F;
+    uint8_t pixel_line;
 
+    uint8_t x = fat8.V[Vx];
+    uint8_t y = fat8.V[Vy];
 
-    pixel_t sprite[byte_num][8];
-    for (int i = 0; i < byte_num; i++) {
-        uint8_t sprite_byte = fat8.memory[fat8.IR + i];
-        for (int j = 0; j < 8 ; j++) {
-            sprite[i][j] = (sprite_byte & (0x80 >> j)) ? PIXEL_ON : PIXEL_OFF;
-        }
-    }
-
-    uint16_t x = fat8.V[Vx] % FRAME_BUFFER_WIDTH;
-    uint16_t y = fat8.V[Vy] % FRAME_BUFFER_HEIGHT;
     fat8.V[0xF] = 0;
-    for (int i = 0; i < byte_num; i++) {
-        for (int j = 0; j < 8; j++) {
-            
-            if (fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] && !sprite[i][j]) {
-                fat8.V[0xF] = 1;
+
+
+    for (int y_sprite = 0; y_sprite < byte_num; y_sprite++) {
+        pixel_line = fat8.memory[fat8.IR + y_sprite];
+        for (int x_sprite = 0; x_sprite < 8; x_sprite++) {
+            if ((pixel_line & (0x80 >> x_sprite)) != 0) {
+                if (fat8.frame_buffer[(x + x_sprite + ((y + y_sprite) * 64))] == PIXEL_ON) {
+                    fat8.V[0xF] = 1;
+                }
+                fat8.frame_buffer[(x + x_sprite + ((y + y_sprite) * 64))] ^= PIXEL_ON;
             }
-            fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] ^= sprite[i][j];
         }
     }
+
+
+
+    // pixel_t sprite[byte_num][8];
+    // for (int i = 0; i < byte_num; i++) {
+    //     uint8_t sprite_byte = fat8.memory[fat8.IR + i];
+    //     for (int j = 0; j < 8 ; j++) {
+    //         sprite[i][j] = (sprite_byte & (0x80 >> j)) ? PIXEL_ON : PIXEL_OFF;
+    //     }
+    // }
+
+    // uint16_t x = fat8.V[Vx] % FRAME_BUFFER_WIDTH;
+    // uint16_t y = fat8.V[Vy] % FRAME_BUFFER_HEIGHT;
+    // fat8.V[0xF] = 0;
+    // for (int i = 0; i < byte_num; i++) {
+    //     for (int j = 0; j < 8; j++) {
+            
+    //         if (fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] && !sprite[i][j]) {
+    //             fat8.V[0xF] = 1;
+    //         }
+    //         fat8.frame_buffer[IND((y + i) % 32, (x + j) % 64)] ^= sprite[i][j];
+    //     }
+    // }
 }
 
 void op_Ex9E() { // SKP Vx
@@ -370,7 +393,7 @@ void op_Fx07() { // LD Vx, DT
 
 void op_Fx0A() { // LD Vx, K
     uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
-    for (int i = 0; i <= 0xF; i++) {
+    for (int i = 0x0; i <= 0xF; i++) {
         if (fat8_keypad.key[i]) {
             fat8.V[Vx] = i;
             return;

@@ -59,6 +59,7 @@ typedef struct fat8 {
 
 typedef struct fat8_keypad {
     uint8_t key[16];
+    int8_t  time_left[16];
 } keypad_t;
 
 
