@@ -3,7 +3,9 @@
 
 
 extern keypad_t fat8_keypad;
+#ifdef NCURSES
 static WINDOW* chip_window;
+#endif
 static pixel_t screen[64 * 32];
 
 const uint64_t timer_time = 1000000/60;
@@ -16,6 +18,7 @@ int init_platform(const char * rom_path, uint64_t scale) {
 
     frame_time /= scale;
 
+#ifdef NCURSES
     initscr();
     cbreak();
     keypad(stdscr, TRUE);
@@ -30,6 +33,7 @@ int init_platform(const char * rom_path, uint64_t scale) {
     int chip_window_start_x = (COLS  - 128) / 2;
 
     chip_window = newwin(32, 128, chip_window_start_y, chip_window_start_x);
+#endif
 
     fat8_init();
     fat8_load_ROM(rom_path);
@@ -59,6 +63,7 @@ int clear_keys() {
 
 int get_keys() {
 
+#ifdef NCURSES
     int pressed_key;
 
     while ((pressed_key = getch()) != ERR) {
@@ -83,7 +88,7 @@ int get_keys() {
                 break;
         }
     }
-
+#endif
 
 
     return 0;
@@ -92,6 +97,7 @@ int get_keys() {
 
 
 int draw_screen() {
+#ifdef NCURSES
     wmove(chip_window, 0, 0);
     for (int y = 0; y < 32; y++) {
         for (int x = 0; x < 64; x++) {
@@ -101,6 +107,7 @@ int draw_screen() {
         wmove(chip_window, y+1, 0);
     }
     
+#endif
     return 0;
 }
 
@@ -112,10 +119,12 @@ int run_chip() {
     uint64_t time_elapsed_timer = 0;
 
     for (;;) {
+#ifdef NCURSES
         fat8_export_framebuffer(screen);
         draw_screen();
         wrefresh(stdscr);
         wrefresh(chip_window);
+#endif
 
 
         struct timeval curr;
