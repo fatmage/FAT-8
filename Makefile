@@ -1,5 +1,5 @@
 CC := gcc
-CCFLAGS := -Wall -Werror -g
+CCFLAGS := -Wall -Werror -g -DNCURSES
 LDFLAGS := -lncurses
 DBGFLAGS := -g
 CCOBJFLAGS := $(CCFLAGS) -c

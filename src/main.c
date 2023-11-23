@@ -6,11 +6,16 @@
 
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
+    if (argc < 2 || argc > 3) {
         return EXIT_FAILURE;
     }
 
-    init_platform(argv[1]);
+    if (argc == 3) {
+        init_platform(argv[1], atoi(argv[2]));
+    } else {
+        init_platform(argv[1], 4);
+    }
+
     run_chip();
 
 

@@ -7,12 +7,14 @@ static WINDOW* chip_window;
 static pixel_t screen[64 * 32];
 
 const uint64_t timer_time = 1000000/60;
-const uint64_t frame_time = 1000000/250;
+uint64_t frame_time = 1000000/60;
 
 #define KEYBOARD_TIMEOUT_CYCLES 10
 
 
-int init_platform(const char * rom_path) {
+int init_platform(const char * rom_path, uint64_t scale) {
+
+    frame_time /= scale;
 
     initscr();
     cbreak();
@@ -138,8 +140,6 @@ int run_chip() {
             time_elapsed_timer -= timer_time;
             fat8_timers();
         }
-
-
 
         prev = curr;
     }

@@ -330,15 +330,18 @@ void op_Dxyn() { // DRW Vx, Vy, nibble
     uint8_t byte_num = fat8.current_opcode & 0x000F;
     uint8_t pixel_line;
 
-    uint8_t x = fat8.V[Vx];
-    uint8_t y = fat8.V[Vy];
+    uint8_t x = fat8.V[Vx] % 64;
+    uint8_t y = fat8.V[Vy] % 32;
+
+    byte_num = byte_num <= 32 - y ? byte_num : 32 - y;
+    uint8_t width = 64 - x < 8 ? 64 - x : 8;
 
     fat8.V[0xF] = 0;
 
 
     for (int y_sprite = 0; y_sprite < byte_num; y_sprite++) {
         pixel_line = fat8.memory[fat8.IR + y_sprite];
-        for (int x_sprite = 0; x_sprite < 8; x_sprite++) {
+        for (int x_sprite = 0; x_sprite < width; x_sprite++) {
             if ((pixel_line & (0x80 >> x_sprite)) != 0) {
                 if (fat8.frame_buffer[(x + x_sprite + ((y + y_sprite) * 64))] == PIXEL_ON) {
                     fat8.V[0xF] = 1;

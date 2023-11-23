@@ -4,9 +4,9 @@ Simple CHIP-8 interpreter written in C using ncurses.
 
 ## Installation and running
 
-To compile the program use ``make``
+To compile the program run ``make``
 
-Usage: ``bin/fat-8 ROM_PATH``
+Usage: ``bin/fat-8 ROM_PATH [SPEED_MULTIPLIER]``
 
 ## Sources
 
@@ -24,7 +24,6 @@ Following resources were used at the beggining of this project but were found to
 
 ## TODO
 
-- fix bugs (space invaders, worm)
-- implement sound
-- add SDL/OpenGL mode
+- fix bugs (space invaders)
+- add SDL/OpenGL mode with sound
 - smooth out handling of keypad by ncurses (if possible)

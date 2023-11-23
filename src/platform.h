@@ -8,7 +8,7 @@
 
 
 
-int init_platform(const char * rom_path);
+int init_platform(const char * rom_path, uint64_t scale);
 int draw_screen();
 int get_keys();
 int run_chip();
