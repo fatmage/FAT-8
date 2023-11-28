@@ -119,14 +119,13 @@ int run_chip() {
     uint64_t time_elapsed_timer = 0;
 
     for (;;) {
+
 #ifdef NCURSES
         fat8_export_framebuffer(screen);
         draw_screen();
         wrefresh(stdscr);
         wrefresh(chip_window);
 #endif
-
-
         struct timeval curr;
         gettimeofday(&curr, NULL);
 

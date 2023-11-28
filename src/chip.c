@@ -242,18 +242,21 @@ void op_8xy1() { // OR Vx, Vy
     uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
     uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
     fat8.V[Vx] |= fat8.V[Vy];
+    fat8.V[0xF] = 0;
 }
 
 void op_8xy2() { // AND Vx, Vy
     uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
     uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
     fat8.V[Vx] &= fat8.V[Vy];
+    fat8.V[0xF] = 0;
 }
 
 void op_8xy3() { // XOR Vx, Vy
     uint8_t Vx = (fat8.current_opcode & 0x0F00) >> 8;
     uint8_t Vy = (fat8.current_opcode & 0x00F0) >> 4;
     fat8.V[Vx] ^= fat8.V[Vy];
+    fat8.V[0xF] = 0;
 }
 
 void op_8xy4() { // ADD Vx, Vy
@@ -437,12 +440,16 @@ void op_Fx55() { // LD [I], Vx
     uint16_t x = (fat8.current_opcode & 0x0F00) >> 8;
     for (int i = 0; i <= x; i++)
         fat8.memory[fat8.IR + i] = fat8.V[i];
+
+    fat8.IR++;
 }
 
 void op_Fx65() { // LD Vx, [I]
     uint16_t x = (fat8.current_opcode & 0x0F00) >> 8;
     for (int i = 0; i <= x; i++)
         fat8.V[i] = fat8.memory[fat8.IR + i];
+    
+    fat8.IR++;
 }
 
 
